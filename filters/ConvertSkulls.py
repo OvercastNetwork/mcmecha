@@ -68,7 +68,7 @@ def perform(level, box, options):
             # if skull['id'].value == 'Skull':
             #     print skull
 
-            if skull['id'].value == 'Skull' and skull.get('ExtraType') and (convertAll or not skull.get('Owner')):
+            if skull['id'].value == 'Skull' and skull.get('ExtraType') and skull.get('ExtraType').value and (convertAll or not skull.get('Owner')):
                 username = skull.get('ExtraType').value
                 print "Updating head of '{0}' at {1}, {2}, {3}".format(username, skull['x'].value, skull['y'].value, skull['z'].value)
 
