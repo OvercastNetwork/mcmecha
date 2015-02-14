@@ -48,29 +48,51 @@ def parseFilterOptions(argv, filterOptionsDef):
 
     return mapPaths, filterOptions
 
+def findMaps(argv):
+    paths = [arg for arg in argv if not arg.startswith('-')]
+
+    if '-r' in argv:
+        for path in paths:
+            for root, dirs, files in os.walk(path):
+                if 'level.dat' in files and 'region' in dirs:
+                    yield root
+    else:
+        for path in paths:
+            yield path
+
 def loadMaps(mapPaths):
     for mapPath in mapPaths:
-        yield mclevel.fromFile(mapPath)
+        try:
+            yield mclevel.fromFile(mapPath)
+        except Exception as ex:
+            print "Exception loading map {0}: {1}".format(mapPath, repr(ex))
 
 def applyFilter(filterModule, level, **filterOptions):
     filterModule.perform(level, level.bounds, filterOptions)
 
 def main(argv):
     if len(argv) < 3:
-        print "Usage: <filter> [filter options] <map>..."
+        print "Usage: <filter> [filter options] [-r] maps..."
     else:
         filterModule = importFilter(argv[1])
         filterOptionsDef = importFilterOptions(filterModule)
         print "Applying filter {0}".format(filterModule.__name__)
 
-        mapPaths, filterOptions = parseFilterOptions(argv[2:], filterOptionsDef)
+        rest, filterOptions = parseFilterOptions(argv[2:], filterOptionsDef)
         for optionName in filterOptions:
             print "  {0} = {1}".format(optionName, repr(filterOptions[optionName]))
 
-        for level in loadMaps(mapPaths):
+        for level in loadMaps(findMaps(rest)):
             print "Processing map {0}".format(level.worldFolder.filename)
             applyFilter(filterModule, level, **filterOptions)
-            level.saveInPlace()
+
+            dirty = False
+            for _ in level.listDirtyChunks():
+                dirty = True
+                break
+
+            if dirty:
+                level.saveInPlace()
 
 if __name__ == "__main__":
     main(sys.argv)
